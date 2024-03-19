@@ -1,0 +1,116 @@
+function bbm_join(p: player, id: text) :: boolean:
+    if {node::%{_id}%::state} is 0:
+        send "&7このエリアは現在遊べません" to {_p}
+        return false
+    else if {node::%{_id}%::state} is 1:
+        send "&7このエリアは現在プレイ中です" to {_p}
+        return false
+    set {_maptype} to {game::%{_id}%::maptype}
+    set {_min} to {bbm_playernum::%{_maptype}%::1}
+    set {_max} to {bbm_playernum::%{_maptype}%::2}
+    set {_size} to size of {game::%{_id}%::Players::*}
+    if {game::%{_id}%::Players::*} contains {_p}:
+        send "&7既にこのエリアに参加しています" to {_p}
+        return true
+    else if {_amount} >= {_max}:
+        send "&7このエリアは満員です" to {_p}
+        return false
+    add {_p} to {game::%{_id}%::Players::*}
+    add 1 to {_size}
+    send "&7[&b&l参加&7] &f%{_p}% &7(%{_size}% &7/ %{_max}%&7)" to {game::%{_id}%::Players::*}
+    bbm_joinMenu()
+
+    if {_min} <= {_size}:
+        bbm_startqueue({_id}) 
+    return true
+
+load:
+    delete {queue::*}
+
+function bbm_quit(p: player):
+    set {_id} to metadata "playing_game" of {_p}
+    remove {_p} from {game::%{_id}%::Players::*}
+    set {_maptype} to {game::%{_id}%::maptype}
+    set {_max} to {bbm_playernum::%{_maptype}%::2}
+    set {_size} to size of {game::%{_id}%::Players::*}
+    if {node::%{_id}%::state} is 1:
+        send "&7 - %{_p}% &cがゲームを抜けました。&7(残り %{_size}%名)" to {game::%{_id}%::Players::*} and {_p}
+        user_reset({_p})
+        bbm_check({_id})
+    else:
+        send "&7[&c&l退出&7] &f%{_p}% &7(%{_size}% &7/ %{_max}%&7)" to {game::%{_id}%::Players::*} and {_p}
+    bbm_joinMenu()
+function bbm_start(id: text, is_team: boolean = false):
+    if {node::%{_id}%::state} is set:
+        send "ノード[%{_id}%] の状態が%{node::%{_id}%::state}%の為ゲームを開始できません" to all ops
+        stop
+    set {node::%{_id}%::state} to 1
+
+    # マップ処理
+    bbm_generateMap({_id})
+    set {_maptype} to {game::%{_id}%::maptype}
+    set {_max} to {bbm_playernum::%{_maptype}%::2}
+    set {_size} to size of {game::%{_id}%::Players::*}
+    # プレイヤー処理
+    set {_players::*} to {game::%{_id}%::Players::*}
+    delete {game::%{_id}%::Players::*}
+    loop min({_max}, {_size}) times:
+        add 1 to {_pos}
+        set {_p} to random element out of {_players::*}
+        add {_p} to {game::%{_id}%::Players::*}
+        remove {_p} from {_players::*}
+        set metadata "state" of {_p} to 0
+        teleport {_p} to {game::%{_id}%::pos::%{_pos}%}
+        
+        bbm_setMeta({_p}, "pos", {_pos})
+
+        bbm_setMeta({_p}, "bomb", 1)
+        bbm_setMeta({_p}, "fire", 1)
+        bbm_setMeta({_p}, "speed", 1)
+
+        bbm_setMeta({_p}, "bomb_type", "normal_bomb")
+        bbm_setMeta({_p}, "bomb_using", 0)
+
+        send "&7ゲームが開始されました" to {_p}
+    loop {_players::*}:
+        set {_p} to loop-value
+        set metadata "state" of {_p} to "lobby"
+        delete metadata "playing_game" of {_p}
+    send "&7人数超過につき参加できませんでした" to {_players::*}
+    bbm_joinMenu()
+function bbm_reset(id: text):
+    if {node::%{_id}%::state} is 1:
+        delete {node::%{_id}%::state}
+        loop {game::%{_id}%::Players::*} and {spec::%{_id}%::*}:
+            send "&7ゲームが強制終了しました" to loop-value
+            user_reset(loop-value)
+    delete {game::%{_id}%::Players::*}
+    delete {spec::%{_id}%::*}
+    bbm_joinMenu()
+function bbm_check(id: text) :: boolean:
+    if {node::%{_id}%::state} is 1:
+        set {_size} to size of {game::%{_id}%::Players::*}
+        {_size} < 2:
+            set {_t} to "&f&lEliminated!"
+            set {_c} to 3 seconds
+            set {_i} to 0 ticks
+            set {_o} to 5 ticks
+            {_size} = 1:
+                set {_win} to 1st element out of {game::%{_id}%::Players::*}
+                set {_title} to "&6&lYou Win!"
+                set {_sub} to "&7おめでとうございます"
+                title({_win}, {_title}, {_sub}, {_c}, {_i}, {_o})
+                set {_s} to "&6Winner &f&l%{_win}%"
+            else:
+                set {_s} to "&7&lDraw"
+            title({spec::%{_id}%::*}, {_t}, {_s}, {_c}, {_i}, {_o})
+            delete {node::%{_id}%::state}
+            loop {game::%{_id}%::Players::*}:
+                user_reset(loop-value)
+            loop {spec::%{_id}%::*}:
+                user_reset(loop-value)
+            bbm_reset({_id})
+            broadcast "&7%{_id}%&7 » %{_s}%"
+            bbm_joinMenu()
+            return true
+    return false

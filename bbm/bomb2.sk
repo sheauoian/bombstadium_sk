@@ -1,0 +1,36 @@
+on explosion prime:
+    cancel event
+function BombParticle(l: location, type: int):
+    set {_l} to SuperLoc({_l})
+    if {_type} is 3:
+        add 1 to {_l}'s x-loc
+        add 1 to {_l}'s z-loc
+        add 1 to {_l}'s y-loc
+        play 10 glow squid ink at {_l}
+        play 17 enchant at {_l}
+        play 3 explosion at {_l}
+    else if {_type} is 2:
+        set {_} to {_l}
+        add 1.5 to {_}'s y-loc
+        loop 3 times:
+            set {_}'s x-loc to {_l}'s x-loc
+            loop 3 times:
+                play 2 enchant at {_}
+                play 3 glow at {_l}
+                add 1 to {_}'s x-loc
+            add 1 to {_}'s z-loc
+    if {_type} is 1:
+        add 1 to {_l}'s x-loc
+        add 1 to {_l}'s z-loc
+        add 1 to {_l}'s y-loc
+        play 18 lava at {_l}
+        play 3 explosion at {_l}
+    else if {_type} is 0:
+        set {_} to {_l}
+        add 1.5 to {_}'s y-loc
+        loop 3 times:
+            set {_}'s x-loc to {_l}'s x-loc
+            loop 3 times:
+                play 2 lava at {_}
+                add 1 to {_}'s x-loc
+            add 1 to {_}'s z-loc

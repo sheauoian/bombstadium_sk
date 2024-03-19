@@ -1,0 +1,2 @@
+function title(p: players, t: text, s: text, c: timespan, i: timespan, o: timespan):
+    send title {_t} with subtitle {_s} to {_p::*} for {_c} with fadein {_i} and fade out {_o}

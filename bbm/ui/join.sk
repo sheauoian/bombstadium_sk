@@ -1,0 +1,42 @@
+options:
+    gui: gui "bbm_join"
+function bbm_joinMenu():
+    set {_rows} to ceil(amount of {node::*} / 9)
+    create a {@gui} with virtual chest with {_rows} rows named "« &lゲームに参加する &r»":
+        make gui slot (integers from 0 to {_rows}*9) with black stained glass pane named "&7"
+        set {_} to 0
+        loop indices of {node::*}:
+            set {_id} to loop-value
+            set {game::%{_id}%::slot} to {_}
+            bbm_joinMenuButton({_id})
+            add 1 to {_}
+function bbm_joinItem(id: text) :: item:
+    set {_name} to {node::%{_id}%::name} ? {_id}
+    set {_maptype} to {game::%{_id}%::maptype} ? 0
+    set {_min} to {bbm_playernum::%{_maptype}%::1}
+    set {_max} to {bbm_playernum::%{_maptype}%::2}
+    set {_amount} to size of {game::%{_id}%::Players::*}
+    if {node::%{_id}%::state} is not 1:
+        if {node::%{_id}%::state} is 0:
+            set {_I} to barrier
+        else if {_amount} < 1:
+            set {_I} to light blue stained glass pane
+        else if {_amount} < {_min}:
+            set {_I} to {_amount} of lime stained glass pane
+        else:
+            set {_I} to {_amount} of yellow stained glass pane
+    else:
+        set {_I} to max(1, {_amount}) of red stained glass pane
+    add "&7参加人数 : &f%{_amount}% / %{_max}% &7(%{_min}%)" to {_l::*}
+    set displayname of {_I} to "&fステージ [ &e%{_name}% &f]"
+    set {_i}'s lore to {_l::*}
+    return {_i}
+function bbm_joinMenuButton(id: text):
+    {game::%{_id}%::maptype} is not set:
+        set {game::%{_id}%::maptype} to "small"
+    set {_i} to bbm_joinItem({_id})
+    edit {@gui}:
+        make gui slot {game::%{_id}%::slot} with {_i}:
+            join(player, {_id})
+            close player's inventory
+            bbm_joinMenu()

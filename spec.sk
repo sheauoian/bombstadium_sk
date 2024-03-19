@@ -1,0 +1,61 @@
+options:
+    flyspeed: {_speed} of feather with nbt "{spec_item:flyspeed}" named "&f飛行速度: %{_speed}%"
+    teleport: clock with nbt "{spec_item:teleport}" named "&fプレイヤーにテレポート"
+    quit: barrier with nbt "{spec_item:quit}" named "&cロビーに戻る"
+
+
+load:
+    create a gui "spec_flyspeed" with hopper inventory named "« &l飛行速度 &r»":
+        set {_s} to 0
+        loop 5 times:
+            set {_} to {_s}+1
+            set {_i} to {_} of feather named "&7« 飛行速度 &f%{_}% &7»"
+            make gui slot {_s} with {_i}:
+                metadata "state" of player is "spectator"
+                set metadata "spec_speed" of {_p} to {_}
+                set fly speed of player to ({_}*0.1)
+                close player's inventory
+            add 1 to {_s}
+
+function user_spectator(p: player, id: text):
+    set metadata "state" of {_p} to "spectator"
+    set {_u} to {_p}'s uuid
+    set {spec::%{_id}%::%{_u}%} to {_p}
+    set metadata "spec_speed" of {_p} to 1
+    delete metadata "playing_game" of {_p}
+    hide {_p} from {game::%{_id}%::players::*}
+    set fly mode of {_p} to true
+    set walk speed of {_p} to 0.2
+    set fly speed of {_p} to 0.2
+    teleport {_p} to {game::%{_id}%::pos::1}
+    set gamemode of {_p} to adventure
+    set visibility of {_p} to false
+    clear {_p}'s inventory
+    set {_speed} to 1
+
+    set slot 9 of {_p} to {@flyspeed}
+    set slot 10 of {_p} to {@teleport}
+    set slot 17 of {_p} to {@quit}
+
+
+inventory click:
+    set {_p} to player
+    metadata "state" of {_p} is "spectator"
+    cancel event
+    set {_} to tag "spec_item" of nbt of clicked item
+    {_} is "flyspeed":
+        open gui "spec_flyspeed" to {_p}
+    {_} is "teleport":
+        send "madadesu" to {_p}
+    {_} is "quit":
+        execute {_p} command "/quit"
+        close {_p}'s inventory
+pick up:
+    set {_p} to player
+    metadata "state" of {_p} is "spectator"
+    cancel event
+
+command /spec <text>:
+    permission: op
+    trigger:
+        user_spectator(player, arg)

@@ -1,0 +1,42 @@
+load:
+    set {_l::*} to "&7- 一定時間後に爆破するボムを設置する。"
+    bbm_constItem("normal_bomb", 0, "&c&lノーマルボム", tnt, {_l::*})
+    bbm_constItem("bombup", 1, "&6&lボムアップ", tnt, ("&7- ボムの所持数が 1 増加する。"))
+    bbm_constItem("fireup", 1, "&6&lファイヤーアップ", blaze powder, ("&7- ボムの火力が 1 増加する。"))
+    bbm_constItem("speedup", 1, "&6&lスピードアップ", iron boots, ("&7- 移動速度が 1段階 増加する。"))
+function bbm_constItem(id: text, type: int, name: text, item: item, lore: texts = ("")):
+    set {bbm_items::%{_id}%} to {_name}
+    set {bbm_items::%{_id}%::type} to {_type}
+    set {bbm_items::%{_id}%::item} to {_item} named {_name} with lore {_lore::*}
+function bbm_getItem(id: text) :: item:
+    set {_i} to {bbm_items::%{_id}%::item}
+    set displayname of {_i} to {bbm_items::%{_id}%}
+    add "{bbm_item:%{_id}%}" to nbt of {_i}
+    return {_i}
+function bbm_spawnItem(id: text, l: location):
+    set {_l} to MidPoint(SuperLoc({_l}))
+    set {_i} to bbm_getItem({_id})
+    drop {_i} at {_l} without velocity
+    set {_i::*} to all entities in radius 1 around {_l}
+    loop {_i::*}:
+        set glowing of loop-value to true
+command /bbm_item [<text>] [<text>]:
+    permission: op
+    trigger:
+        set {_} to arg-1
+        set {_id} to arg-2
+        if {_id} is set:
+            if {_} is "get":
+                set {_i} to bbm_getItem({_id})
+                give player {_i}
+            else if {_} is "spawn":
+                bbm_spawnItem({_id}, player's location)
+        else if {_} is "list":
+            loop {bbm_items::*}:
+                send "&7[&b%loop-index%&7] %loop-value%"
+        else:
+            send "/bbm_item get <ID>"
+            send "/bbm_item list"
+tab complete of "/bbm_item":
+    set tab completions for position 1 to "get" and "list"
+    set tab completions for position 2 to indices of {bbm_items::*}

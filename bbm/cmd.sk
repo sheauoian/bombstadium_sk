@@ -1,0 +1,10 @@
+command /bbm [<text>]:
+    aliases: bomberman, bombermen
+    trigger:
+        set {_} to arg-1
+        if {_} is "version" or "v":
+            send "&7Bomberman 3.0 (24/03/20)"
+            send "&7Created by _not_ka_not_"
+        else:
+            bbm_joinMenu()
+            open gui "bbm_join" to player

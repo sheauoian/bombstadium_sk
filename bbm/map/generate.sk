@@ -1,0 +1,84 @@
+options:
+    mass: 3
+
+command /bbm_generate <text>:
+    permission: op
+    trigger:
+        set {_id} to arg
+        set {node::%{_id}%::pos} to player's location
+        set {game::%{_id}%::wall} to cyan terracotta
+        set {game::%{_id}%::block} to cobblestone
+        set {game::%{_id}%::maptype} to "small"
+        bbm_generateMap({_id})
+
+function bbm_generateMap(id: text):
+    delete {game::%{_id}%::pos::*}
+    set {_mass} to bbm_mass({node::%{_id}%::pos})
+    set {_maptype} to {game::%{_id}%::maptype}
+    set {_sx} to {bbm_mapsize::%{_maptype}%::1}
+    set {_sz} to {bbm_mapsize::%{_maptype}%::2}
+    set {_max} to {bbm_playernum::%{_maptype}%::2}
+
+    # ステージ基盤の作成
+    set {_z} to 0
+    loop {_sz} times:
+        set {_x} to 0
+        loop {_sx} times:
+            # ブロックタイプの設定
+            set {_iswall_1} to ({_x} mod floor({_sx}-1)) * ({_z} mod floor({_sz}-1))
+            set {_iswall_2} to ({_x} mod 2) + ({_z} mod 2)
+            if {_iswall_1}*{_iswall_2} is 0:
+                set {_block} to {game::%{_id}%::wall}
+            else:
+                chance of 70%:
+                    set {_block} to {game::%{_id}%::block}
+                else:
+                    set {_block} to air
+            # マスブロックにブロック設置
+            set {_l} to {_mass} ~ vector({_x}*3, 0, {_z}*3)
+            loop bbm_massblocks({_l}):
+                set block at loop-value-3 to {_block}
+            add 1 to {_x}
+        add 1 to {_z}
+    
+    # プレイヤーのスポーン地点関連の処理
+    set {_space_x} to ceil({_sx}/15)
+    set {_space_z} to ceil({_sz}/15)
+    set {_row} to 0
+    remove 1 from {_sx}
+    remove 1 from {_sz}
+    loop ceil({_max}/4) times:
+        set {_px} to {_row}*{_space_x}+1
+        set {_pz} to {_row}*{_space_z}+1
+        set {_x::*} to {_px} and ({_sx}-{_px})
+        set {_z::*} to {_pz} and ({_sz}-{_pz})
+        set {_vz} to 1
+        loop {_z::*}:
+            set {_vx} to 1
+            loop {_x::*}:
+                set {_x} to loop-value-3
+                set {_z} to loop-value-2
+                set {_l} to {_mass} ~ vector({_x}*3, 0, {_z}*3)
+                add bbm_mid({_l}) to {game::%{_id}%::pos::*}
+                loop bbm_massblocks({_l}):
+                    set block at loop-value-4 to air
+                loop bbm_massblocks({_l} ~ vector({_vx}*3, 0, 0)):
+                    set block at loop-value-4 to air
+                loop bbm_massblocks({_l} ~ vector(0, 0, {_vz}*3)):
+                    set block at loop-value-4 to air
+                set {_vx} to -1
+            set {_vz} to -1
+        add 2 to {_row}
+
+command /bbm_tp <text> <int>:
+    permission: op
+    trigger:
+        teleport player to {game::%arg-1%::pos::%arg-2%}
+command /ba:
+    permission: op
+    trigger:
+        execute player command "/sk reload bbm/map\"
+        execute player command "/sk reload bbm/main"
+        execute player command "/sk reload game"
+        execute player command "/reset test"
+        execute player command "/start test"

@@ -1,0 +1,35 @@
+function bbm_startqueue(id: text):
+    set {_maptype} to {game::%{_id}%::maptype}
+    set {_min} to {bbm_playernum::%{_maptype}%::1}
+    set {_max} to max({_min}+1, min({bbm_playernum::%{_maptype}%::2}, size of all players))
+    set {_size} to size of {game::%{_id}%::Players::*}
+
+    set {_1} to {_size}-{_min}
+    set {_2} to {_max}-{_min}
+    set {_time} to 3+10*(1-{_1}/{_2})
+    {queue::%{_id}%} is not set:
+        set {queue::%{_id}%} to {_time}
+    else if {queue::%{_id}%} >= {_time}:
+        set {queue::%{_id}%} to {_time}
+    {queue::%{_id}%} is {_time}:
+        send "&7ゲーム開始まで残り &f%{queue::%{_id}%}%秒" to {game::%{_id}%::players::*}
+        play sound "block.lever.click" to {game::%{_id}%::players::*}
+
+command /bbm_queuetest <text>:
+    permission: op
+    trigger:
+        set {_p} to player
+        set {_id} to arg
+
+        set {_maptype} to {game::%{_id}%::maptype}
+        set {_min} to {bbm_playernum::%{_maptype}%::1}
+        set {_max} to {bbm_playernum::%{_maptype}%::2}
+        set {_size} to size of {game::%{_id}%::Players::*}
+
+        add {_p} to {game::%{_id}%::Players::*}
+        add 1 to {_size}
+        send "&7[&b&l参加&7] &f%{_p}% &7(%{_size}% &7/ %{_max}%&7)" to {game::%{_id}%::Players::*}
+        bbm_joinMenu()
+        send "%{_min}% <= %{_size}%"
+        if {_min} <= {_size}:
+            bbm_startqueue({_id}) 

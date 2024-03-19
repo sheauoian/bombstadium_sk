@@ -1,0 +1,16 @@
+# bbm_mass(Raw Location): Mass Location
+function bbm_mass(l: location) :: location:
+    set {_w} to {_l}'s world
+    set {_y} to floor({_l}'s y-loc) - 1
+    set {_mx} to floor(floor({_l}'s x-loc) / 3) * 3 + 0.5
+    set {_my} to floor({_Y} / 3) * 3 + 1.5
+    set {_mz} to floor(floor({_l}'s z-loc) / 3) * 3 + 0.5
+    return location at {_MX}, {_MY}, {_MZ} in {_w}
+
+# bbm_mass(Mass Location): Locations
+function bbm_massblocks(l: location) :: locations:
+    return location of blocks in radius 1.75 around bbm_mid({_l})
+
+# bbm_mass(Mass Location): Middle Location
+function bbm_mid(l: location) :: location:
+    return {_l} ~ vector(1, 1, 1)

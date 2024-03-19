@@ -1,0 +1,151 @@
+function bbm_canPlaceBomb(p: player, l: location, type: text) :: boolean:
+    metadata "state" of {_p} is not 0:
+        return false
+    if bbm_getMeta({_p}, "bomb") <= bbm_getMeta({_p}, "bomb_using"):
+        return false
+    set {_mass} to bbm_mass({_l})
+    loop players in radius 2.5 around bbm_mid({_mass}):
+        set {_v} to vector from {_l} and loop-player
+        set standard length of {_v} to 1
+        set {_v}'s y to 0
+        add {_v} to loop-player's velocity
+        bbm_massblocks({_mass}) contains location of block at location of loop-player
+        set {_r} to false
+    return {_r} ? true
+
+function bbm_pre_setbomb(p: player, l: location, i: item):
+    wait a ticks
+    set block at {_l} to air
+    set {_id} to tag "bbm_item" of nbt of {_i}
+
+    if {bbm_items::%{_id}%::type} is 0:
+        bbm_canPlaceBomb({_p}, {_l}, {_id}) is true
+        bbm_setbomb({_p}, {_l}, {_id})
+command /getnbt:
+    permission: op
+    trigger:
+        send nbt of player's tool
+
+function bbm_setbomb(p: player, loc: location, type: text):
+
+    # 前処理
+    set {_bomb_using} to bbm_getMeta({_p}, "bomb_using")
+    add 1 to {_bomb_using}
+    bbm_setMeta({_p}, "bomb_using", {_bomb_using})
+    bbm_playerloop({_p})
+
+    set {_mass} to bbm_mass({_loc})
+    set {_mid} to bbm_mid({_loc})
+    set {_delay} to 5
+    set {_id} to metadata "playing_game" of {_p}
+
+    set {_uid} to random integer between 10000 to 99999
+    set metadata "bbm_placed" of block at {_mass} to {_uid}
+    set metadata "bbm_placed_bombfire" of block at {_mass} to bbm_getMeta({_p}, "fire")
+    set metadata "bbm_placed_bombtype" of block at {_mass} to {_type}
+    set metadata "bbm_placed_bombholder" of block at {_mass} to {_p}
+
+    # 設置
+    if {_type} is "normal_bomb":
+        loop bbm_massblocks({_mass}):
+            set block at loop-value to tnt
+    else if {_type} is "penetration_bomb":
+        loop bbm_massblocks({_mass}):
+            set block at loop-value to piston
+    else if {_type} is "remote_bomb":
+        loop bbm_massblocks({_mass}):
+            set block at loop-value to wool
+
+    # 待機
+    loop ceil({_delay}*4 - 1) times:
+        play sound "entity.creeper.primed" with volume 1.3 at {_mid}
+        morkazsk play 10 "SMOKE_LARGE":0 offset by 1, 1, 1 at {_mid}
+        wait 5 ticks
+        block at {_mass} is air:
+            exit a loop
+        metadata "state" of {_p} is not 0:
+            exit a loop
+            
+    set {_bomb_using} to bbm_getMeta({_p}, "bomb_using")
+    remove 1 from {_bomb_using}
+    bbm_setMeta({_p}, "bomb_using", {_bomb_using})
+    bbm_playerloop({_p})
+    
+    # 爆発前の判定
+    set {_uid2} to metadata "bbm_placed" of block at {_mass}
+    metadata "bbm_placed" of block at {_mass} is not {_uid}:
+        stop
+    
+    # 爆発
+    bbm_bombexplosion({_mass})
+
+function bbm_bombexplosion(loc: location):
+    # 前処理
+    set {_mass} to bbm_mass({_loc})
+    set {_p} to metadata "bbm_placed_bombholder" of block at {_mass}
+    set {_type} to metadata "bbm_placed_bombtype" of block at {_mass}
+    set {_fire} to metadata "bbm_placed_bombfire" of block at {_mass}
+    set {_u} to {_p}'s uuid
+    delete metadata "bbm_placed" of block at {_mass}
+    delete metadata "bbm_placed_bombtype" of block at {_mass}
+    delete metadata "bbm_placed_bombholder" of block at {_mass}
+    wait 2 ticks
+
+    # 爆発
+    loop bbm_massblocks({_mass}):
+        set block at loop-value to air
+    play sound "entity.generic.explode" with volume 1.3 at bbm_mid({_mass})
+    morkazsk play 3 "EXPLOSION_LARGE":0 offset by 0, 0, 0 at bbm_mid({_mass})
+    
+    delete {bbm_killed::%{_u}%::*}
+    loop (1 and -1):
+        set {_y} to loop-value
+        set {_x} to 1
+        loop {_fire} times:
+            set {_temp} to {_x}*{_y}*3
+            set {_temp} to {_mass} ~ vector({_temp}, 0, 0)
+            bbm_explosion({_p}, {_temp}, {_type}) is false:
+                exit a loop
+            add 1 to {_x}
+        set {_z} to 1
+        loop {_fire} times:
+            set {_temp} to {_z}*{_y}*3
+            set {_temp} to {_mass} ~ vector(0, 0, {_temp})
+            bbm_explosion({_p}, {_temp}, {_type}) is false:
+                exit a loop
+            add 1 to {_z}
+    loop (size of {bbm_killed::%{_u}%::*}) times:
+        set {_v} to random element out of {bbm_killed::%{_u}%::*}
+        bbm_kill({_v}, {_p}, {_type})
+
+function bbm_explosion(p: player, l: location, type: text) :: boolean:
+    set {_mass} to bbm_mass({_l})
+    set {_id} to metadata "playing_game" of {_p}
+    if "%type of block at {_mass}%" is "%{game::%{_id}%::block}%":
+        loop bbm_massblocks({_mass}):
+            set block at loop-value to air
+        chance of 80%:
+            set {_item} to random element out of indices of {bbm_items::*}
+            bbm_spawnItem({_item}, bbm_mid({_mass}))
+        if {_type} is "penetration_bomb":
+            return true
+    else if metadata "bbm_placed_bombtype" of block at {_mass} is set:
+        bbm_bombexplosion(bbm_mid({_mass}))
+    else if block at {_mass} is air:
+        morkazsk play 5 "EXPLOSION_NORMAL":0 offset by 1, 1, 1 at {_mass}
+        morkazsk play 10 "FLAME":0 offset by 1, 1, 1 at {_mass}
+        morkazsk play 1 "EXPLOSION_LARGE":0 offset by 0, 0, 0 at bbm_mid({_mass})
+        morkazsk play 3 "DRIP_LAVA":0 offset by 0, 0, 0 at bbm_mid({_mass})
+
+        set {_u} to {_p}'s uuid
+        loop players in radius 2.5 around bbm_mid({_mass}):
+            bbm_massblocks({_mass}) contains location of block at location of loop-player
+            add loop-player to {bbm_killed::%{_u}%::*}
+
+        return true
+    return false
+
+function bbm_drop(id: text) :: text:
+    set {_list::*} to indices of {bbm_items::*}
+    remove "normal_bomb" from {_list::*}
+    return (random element out of {_list::*})

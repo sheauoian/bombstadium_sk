@@ -1,0 +1,40 @@
+# Player's Metadata
+#   state -> UserState
+#       - lobby
+#       - Int (GameType(game.sk))
+#   node -> NodeID
+join:
+    user_reset(player)
+function user_reset(p: player):
+    execute console command "effect %{_p}% clear"
+    reveal {_p} to all players
+    set fly mode of {_p} to false
+    set walk speed of {_p} to 0.4
+    delete metadata "playing_game" of {_p}
+    set metadata "state" of {_p} to "lobby"
+    clear {_p}'s inventory
+    teleport {_p} to {Spawn}
+function player_quit(p: player, id: text):
+    remove {game::%{_id}%::players::*} from {_p}
+    set {_amount} to size of {game::%{_id}%::players_ini::*}
+    send "&7 - %{_p}% &cがゲームを抜けました。&7(残り %{_amount}%&7名)" to {game::%{_id}%::players_ini::*}
+    check({_id})
+
+drop:
+    set {_p} to player
+    metadata "state" of {_p} is not 1:
+        cancel event
+break:
+    set {_p} to player
+    {_p}'s gamemode is not creative
+    metadata "state" of {_p} is not 1:
+        cancel event
+place:
+    set {_p} to player
+    {_p}'s gamemode is not creative
+    metadata "state" of {_p} is not 1:
+        cancel event
+damage:
+    set {_p} to victim
+    metadata "state" of {_p} is not 1:
+        cancel event

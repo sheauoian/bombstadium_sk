@@ -1,0 +1,98 @@
+load:
+    constGametype(0, "bbm", "&c&lボンバーマン")
+    constGametype(1, "bbs", "&c&lボンバースタジアム")
+function constGametype(n: int, id: text, name: text):
+    set {gametype::%{_n}%} to {_id}
+    set {gametype::%{_n}%::name} to {_name}
+
+skript load:
+    loop indices of {node::*}:
+        reset(loop-value)
+
+
+
+#
+# %gametype%/main.sk に書く処理
+#
+
+# join(Player, NodeID) -> Boolean
+function join(p: player, id: text):
+    if {node::%{_id}%} is 0:
+        set {_b} to bbm_join({_p}, {_id})
+    {_b} is true:
+        set metadata "playing_game" of {_p} to {_id}
+command /join <text>:
+    trigger:
+        join(player, arg)
+
+# quit(Player)
+function quit(p: player):
+    send action bar "&0" to {_p}
+    metadata "playing_game" of {_p} is set:
+        set {_id} to metadata "playing_game" of {_p}
+        {node::%{_id}%} is 0:
+            bbm_quit({_p})
+        delete metadata "playing_game" of {_p}
+    else:
+        user_reset({_p})
+command /quit:
+    trigger:
+        quit(player)
+
+# reset(NodeID)
+function reset(id: text):
+    {node::%{_id}%} is 0:
+        bbm_reset({_id})
+command /reset <text>:
+    permission: op
+    trigger:
+        reset(arg)
+
+# start(NodeID)
+function start(id: text):
+    {node::%{_id}%} is 0:
+        bbm_start({_id})
+command /start <text>:
+    permission: op
+    trigger:
+        start(arg)
+
+# check(NodeID)
+function check(id: text):
+    {node::%{_id}%} is 0:
+        bbm_check({_id})
+command /check <text>:
+    permission: op
+    trigger:
+        check(arg)
+
+tab complete of "join", "start", "check", "spec" and "reset":
+    set tab completions for position 1 to indices of {node::*}
+
+#
+# %gametype%/player.sk に書く処理
+#
+
+#
+# playerloop(Player)
+# 定期的に実行 actionbarの機能などの提供
+function playerloop(p: player):
+    metadata "playing_game" of {_p} is set:
+        set {_id} to metadata "playing_game" of {_p}
+        {node::%{_id}%} is 0:
+            bbm_playerloop({_p})
+    else:
+        send action bar {actionbar} to {_p}
+every a second:
+    loop indices of {queue::*}:
+        set {_id} to loop-value
+        remove 1 from {queue::%{_id}%}
+        if {queue::%{_id}%} <= 0:
+            start({_id})
+            delete {queue::%{_id}%}
+    loop all players:
+        playerloop(loop-player)
+command /actionbar <text>:
+    permission: op
+    trigger:
+        set {actionbar} to arg

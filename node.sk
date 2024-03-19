@@ -1,0 +1,136 @@
+# {node::%{_id}%} -> Gametype (In game.sk)
+#   0 -> bomberman
+#   1 -> bombstadium
+#   2 -> dynamIO
+# {node::%{_id}%::state} -> NodeState
+#   None -> in queue
+#   0    -> locked
+#   1    -> playing
+# {node::%{_id}%::pos} -> Location
+# {node::%{_id}%::name} -> Text
+function stopAllNodes():
+    loop indices of {node::*}:
+        set {_id} to loop-value
+        # If State is 1 (Playing) -> set State to None (In Queue)
+        {node::%{_id}%::state} is 1:
+            delete {node::%{_id}%::state}
+function nodeList(p: player, nodes: texts = ("")):
+    {_nodes::*} = "":
+        set {_nodes::*} to indices of {node::*}
+    create gui with virtual chest with 6 rows named "&l« ノード一覧 »":
+        make gui slot (integers between 0 to 53) with gray stained glass named "&7"
+        set {_s} to 0
+        loop {_nodes::*}:
+            make gui slot {_s} with paper named loop-value
+            add 1 to {_s}
+    open last created gui to {_p}
+command /nodelist:
+    permission: op
+    trigger:
+        nodeList(player)
+tab complete of "/node":
+    indices of {node::*} is set:
+        set tab completions for position 1 to indices of {node::*}
+command /node [<text>]:
+    permission: op
+    trigger:
+        set {_p} to player
+        if arg-1 is not set:
+            create a gui with virtual chest with 6 rows named "Node Editor":
+                set {_} to 0
+                loop indices of {node::*}:
+                    set {_id} to loop-value
+                    set {_i} to grass named "%{_id}%"
+                    make gui slot {_} with {_i}:
+                        execute player command "/node %{_id}%"
+                    add 1 to {_}
+                make gui slot {_} with paper named "&7» &f新規作成":
+                    open anvilgui named "67NodeEditor &8» 新規作成" with icon anvil text "ID" for {_p}
+                    set metadata "anvilgui" of {_p} to "map_new"
+        else:
+            set {_id} to arg-1
+            create a gui "nodeeditor.%{_id}%" with virtual chest with 6 rows named "&7NodeEditor &8» %{_id}%":
+                make gui slot 53 with barrier named "&7» &f戻る":
+                    execute {_p} command "/node"
+                set {_type} to {node::%{_id}%}
+                set {_lore::*} to "&7- 現在: %{gametype::%{_type}%::name}%"
+                make gui slot 9 with command block named "&7» &fゲームタイプ" with lore {_lore::*}:
+                    create a gui with virtual chest with 1 rows named "&7NodeEditor &8» %{_id}%":
+                        set {_s} to 0
+                        loop {gametype::*}:
+                            make gui slot {_s} with command block named "&7« &f%loop-value% &7»":
+                                set {node::%{_id}%} to {_s}
+                                execute {_p} command "/node %{_id}%"
+                            add 1 to {_s}
+                    open last created gui to {_p}
+            set {_g} to last created gui
+            nodeeditor_lock({_g}, {_id})
+            
+        open last created gui to {_p}
+function nodeeditor_lock(g: gui inventory, id: text):
+    edit {_g}:
+        if {node::%{_id}%::state} is 0:
+            set {_i} to iron door item named "&7» &f現在 &7クローズド"
+        else if {node::%{_id}%::state} is not set: 
+            set {_i} to oak wood door item named "&7» &f現在 &6オープン"
+        else:
+            set {_i} to glow oak wood door item named "&7» &f現在 &dプレイ中"
+            make gui slot 0 with {_i}
+            stop
+        make gui slot 0 with {_i}:
+            {node::%{_id}%::state} is set:
+                delete {node::%{_id}%::state}
+            else:
+                set {node::%{_id}%::state} to 0
+            nodeeditor_lock({_g}, {_id})
+function nodeeditor_input(g: gui inventory, s: int, id: text, index: text = "", type: text = "text"):
+    edit {_g}:
+        {_index} is "":
+            set {_lore} to "&7 - %{node::%{_id}%}%"
+        else:
+            set {_lore} to "&7 - %{node::%{_id}%::%{_index}%}%"
+        set {_i} to paper named "&f%{_id}% &7(%{_class}%)" with lore {_lore}
+        make gui slot {_s} with {_i}:
+            open anvilgui named "&7NodeEditor &8» 新規作成" with icon anvil text "ID" for player
+            set metadata "anvilgui" of player to "node!%{_class}%!%{_id}%;%{_index}%"
+
+load:
+    delete {node::<none>::*}
+    delete {node::<none>}
+
+
+# 
+# metadata "anvilgui"
+# > "map!%classinfo%!%map id%;%index%" -> Map Editor
+#   - {node::%map id%::%index%}
+#
+On anvil gui done:
+    set {_p} to player
+    set {_input} to event-string
+    set {_} to metadata "anvilgui" of {_p}
+    wait a tick
+    if {_} contains "!":
+        set {_k::*} to split {_} at "!"
+        if {_k::2} is "int":
+            set {_v} to {_input} parsed as a int
+        else if {_k::2} is "number":
+            set {_v} to {_input} parsed as a number
+        else:
+            set {_v} to {_input}
+        parse error is set:
+            send "&cParse Errorが発生しました" to {_p}
+        else:
+            set {_l::*} to split {_k::3} at ";"
+            if {_k::1} is "map":
+                {_l::2} is "":
+                    set {node::%{_l::1}%} to {_v}
+                else:
+                    set {node::%{_l::1}%::%{_l::2}%} to {_v}
+                execute {_p} command "/map %{_l::1}%"
+    {_} is "map_new":
+        set {node::%{_input}%} to 0
+        set {node::%{_input}%::state} to 0
+        execute {_p} command "/node %{_input}%"
+function node_send(id: text, t: text):
+    set {_p::*} to {game::%{_id}%::Players::*} and {spec::%{_id}%::*}
+    send {_t} to {_p::*}

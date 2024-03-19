@@ -1,0 +1,6 @@
+on load:
+    bbm_constMapsize("small", 2, 4, 13, 15)
+    bbm_constMapsize("medium", 4, 8, 13, 19)
+function bbm_constMapsize(id: text, min: int, max: int, x: int, z: int):
+    set {bbm_playernum::%{_id}%::*} to {_min} and {_max}
+    set {bbm_mapsize::%{_id}%::*} to {_x} and {_z}
