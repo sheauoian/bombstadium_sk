@@ -38,7 +38,8 @@ function quit(p: player):
 command /quit:
     trigger:
         quit(player)
-
+quit:
+    quit(player)
 # reset(NodeID)
 function reset(id: text):
     {node::%{_id}%} is 0:

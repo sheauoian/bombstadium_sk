@@ -4,6 +4,10 @@ load:
     bbm_constItem("bombup", 1, "&6&lボムアップ", tnt, ("&7- ボムの所持数が 1 増加する。"))
     bbm_constItem("fireup", 1, "&6&lファイヤーアップ", blaze powder, ("&7- ボムの火力が 1 増加する。"))
     bbm_constItem("speedup", 1, "&6&lスピードアップ", iron boots, ("&7- 移動速度が 1段階 増加する。"))
+    set {_l::2} to "&7- 爆風は破壊可能ブロックを貫通する。"
+    bbm_constItem("penetration_bomb", 0, "&c&l貫通ボム", piston, {_l::*})
+    set {_l::2} to "&7- Qキーでドロップすると起爆する。"
+    bbm_constItem("remote_bomb", 0, "&c&l貫通ボム", gray wool, {_l::*})
 function bbm_constItem(id: text, type: int, name: text, item: item, lore: texts = ("")):
     set {bbm_items::%{_id}%} to {_name}
     set {bbm_items::%{_id}%::type} to {_type}
@@ -14,7 +18,7 @@ function bbm_getItem(id: text) :: item:
     add "{bbm_item:%{_id}%}" to nbt of {_i}
     return {_i}
 function bbm_spawnItem(id: text, l: location):
-    set {_l} to MidPoint(SuperLoc({_l}))
+    set {_l} to bbm_mid(bbm_mass({_l}))
     set {_i} to bbm_getItem({_id})
     drop {_i} at {_l} without velocity
     set {_i::*} to all entities in radius 1 around {_l}
@@ -40,3 +44,7 @@ command /bbm_item [<text>] [<text>]:
 tab complete of "/bbm_item":
     set tab completions for position 1 to "get" and "list"
     set tab completions for position 2 to indices of {bbm_items::*}
+command /itemtype:
+    permission: op
+    trigger:
+        send type of player's tool

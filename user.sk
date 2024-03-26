@@ -4,7 +4,10 @@
 #       - Int (GameType(game.sk))
 #   node -> NodeID
 join:
+    set join message to "&7[&a+&7] &f%player%"
     user_reset(player)
+quit:
+    quit(player)
 function user_reset(p: player):
     execute console command "effect %{_p}% clear"
     reveal {_p} to all players
@@ -22,6 +25,7 @@ function player_quit(p: player, id: text):
 
 drop:
     set {_p} to player
+    set metadata "dropped" of {_p} to now
     metadata "state" of {_p} is not 1:
         cancel event
 break:

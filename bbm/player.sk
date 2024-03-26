@@ -112,18 +112,28 @@ command /noriage:
             send "%loop-index%: %loop-value%"
 
 function bbm_addParam(p: player, type: text):
-    if {_type} is "bombup" or "normal_bomb":
-        play sound "entity.chicken.egg" with pitch 0.8 at {_p}
-        set {_meta} to "bomb"
-    else if {_type} is "fireup":
-        play sound "block.anvil.land" with pitch 1.7 at {_p}
-        set {_meta} to "fire" 
-    else if {_type} is "speedup":
-        play sound "entity.wither.shoot" with pitch 1.3 at {_p}
-        set {_meta} to "speed" 
-    set {_param} to bbm_getMeta({_p}, {_meta})
-    set {_param} to min(5, {_param} + 1)
-    bbm_setMeta({_p}, {_meta}, {_param})
+    if {_type} is "normal_bomb":
+        set {_type} to "bombup"
+    if {bbm_items::%{_type}%::type} is 1:
+        if {_type} is "bombup" or "normal_bomb":
+            play sound "entity.chicken.egg" with pitch 0.8 at {_p}
+            set {_meta} to "bomb"
+        else if {_type} is "fireup":
+            play sound "block.anvil.land" with pitch 1.7 at {_p}
+            set {_meta} to "fire" 
+        else if {_type} is "speedup":
+            play sound "entity.wither.shoot" with pitch 1.3 at {_p}
+            set {_meta} to "speed" 
+        set {_param} to bbm_getMeta({_p}, {_meta})
+        set {_param} to min(5, {_param} + 1)
+        bbm_setMeta({_p}, {_meta}, {_param})
+    else if {bbm_items::%{_type}%::type} is 0:
+        bbm_setMeta({_p}, "bomb_type", {_type}) 
+        if {_type} is "penetration_bomb":
+            play sound "block.piston.extend" with pitch 0.7 at {_p}
+        else if {_type} is "remote_bomb":
+            play sound "block.note.bell" with pitch 1.7 at {_p}
+    
 
 function bbm_kill(v: player, a: player, type: text = "normal_bomb"):
     metadata "playing_game" of {_v} is metadata "playing_game" of {_a}
@@ -141,7 +151,7 @@ function bbm_kill(v: player, a: player, type: text = "normal_bomb"):
         add 1 to {stat::%{_au}%::bbm::kill}
         add 1 to {stat::%{_vu}%::bbm::death}
     remove {_v} from {game::%{_id}%::players::*}
-    set {spec::%{_id}%::*} to {_v}
+    add {_v} to {spec::%{_id}%::*}
     if bbm_check({_id}) is false:
         set {_size} to amount of {game::%{_id}%::players::*}
         send "&7- 残り %{_size}%人" to {game::%{_id}%::players::*}

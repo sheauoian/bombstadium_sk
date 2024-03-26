@@ -84,9 +84,17 @@ function bbm_reset(id: text):
         loop {game::%{_id}%::Players::*} and {spec::%{_id}%::*}:
             send "&7ゲームが強制終了しました" to loop-value
             user_reset(loop-value)
+            reveal loop-value to all players
     delete {game::%{_id}%::Players::*}
     delete {spec::%{_id}%::*}
     bbm_joinMenu()
+
+command /reveal:
+    permission: op
+    trigger:
+        loop all players:
+            reveal loop-player to all players
+
 function bbm_check(id: text) :: boolean:
     if {node::%{_id}%::state} is 1:
         set {_size} to size of {game::%{_id}%::Players::*}

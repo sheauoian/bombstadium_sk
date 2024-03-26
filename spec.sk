@@ -24,18 +24,18 @@ function user_spectator(p: player, id: text):
     set metadata "spec_speed" of {_p} to 1
     delete metadata "playing_game" of {_p}
     hide {_p} from {game::%{_id}%::players::*}
-    set fly mode of {_p} to true
-    set walk speed of {_p} to 0.2
-    set fly speed of {_p} to 0.2
     teleport {_p} to {game::%{_id}%::pos::1}
     set gamemode of {_p} to adventure
     set visibility of {_p} to false
     clear {_p}'s inventory
     set {_speed} to 1
-
     set slot 9 of {_p} to {@flyspeed}
     set slot 10 of {_p} to {@teleport}
     set slot 17 of {_p} to {@quit}
+    wait a tick
+    set fly mode of {_p} to true
+    set walk speed of {_p} to 0.2
+    set fly speed of {_p} to 0.2
 
 
 inventory click:
